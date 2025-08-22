@@ -1,6 +1,17 @@
 import { Client, Databases, Account, Storage } from 'appwrite';
 
 class AppwriteService {
+  // Método ping para checar conexão com Appwrite
+  async ping() {
+    if (!this.initialized) return Promise.reject('Appwrite não inicializado');
+    try {
+      // Tenta buscar informações do projeto (ou qualquer endpoint público)
+      await this.client.call('GET', '/health');
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
   constructor() {
     this.client = new Client();
     this.databases = null;
