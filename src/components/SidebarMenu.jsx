@@ -1,5 +1,7 @@
 import React from 'react';
-import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import { List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import { motion } from 'framer-motion';
+import '../SidebarMenuSlide.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const drawerWidth = 280;
@@ -14,20 +16,20 @@ const SidebarMenu = ({ open, onClose, menuItems, sidebarOpen }) => {
   };
 
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        display: { xs: 'none', md: 'block' },
-        '& .MuiDrawer-paper': {
-          boxSizing: 'border-box',
-          width: sidebarOpen ? drawerWidth : 64,
-          transition: 'width 0.3s',
-          overflowX: 'hidden',
-          scrollbarWidth: 'none',
-          '&::-webkit-scrollbar': { display: 'none' },
-        },
+    <motion.div
+      initial={false}
+      animate={{ x: sidebarOpen ? 0 : -280 }}
+      transition={{ type: 'tween', duration: 0.3 }}
+      style={{
+        width: 280,
+        boxSizing: 'border-box',
+        background: '#fff',
+        borderRight: '1px solid #e0e0e0',
+        overflowX: 'hidden',
+        height: '100%',
+        position: 'relative',
+        zIndex: 2,
       }}
-      open={open}
     >
       <List>
         {menuItems.map((item) => (
@@ -55,7 +57,7 @@ const SidebarMenu = ({ open, onClose, menuItems, sidebarOpen }) => {
           </ListItem>
         ))}
       </List>
-    </Drawer>
+    </motion.div>
   );
 };
 

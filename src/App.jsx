@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './AppLayout.css';
 import Header from './components/Header';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -220,45 +221,30 @@ const MainLayout = ({ user, onLogout, showHeader = true }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {showHeader && (
-        <Header
-          theme={theme}
-          user={user}
-          anchorEl={anchorEl}
-          handleProfileMenuOpen={handleProfileMenuOpen}
-          handleProfileMenuClose={handleProfileMenuClose}
-          onLogout={onLogout}
-          handleDrawerToggle={handleDrawerToggle}
-        />
-      )}
-      <Box sx={{ display: 'flex', flexGrow: 1 }}>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: sidebarOpen ? drawerWidth : 64,
-              transition: theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-              overflowX: 'hidden',
-              scrollbarWidth: 'none',
-              '&::-webkit-scrollbar': { display: 'none' },
-            },
-          }}
-          open
-        >
+    <div className="layout-root">
+      <div className="layout-header">
+        {showHeader && (
+          <Header
+            theme={theme}
+            user={user}
+            anchorEl={anchorEl}
+            handleProfileMenuOpen={handleProfileMenuOpen}
+            handleProfileMenuClose={handleProfileMenuClose}
+            onLogout={onLogout}
+            handleDrawerToggle={handleDrawerToggle}
+          />
+        )}
+      </div>
+      <div className="layout-body">
+        <div className="layout-drawer" style={{ width: 280 }}>
           <SidebarMenu
             open={sidebarOpen}
             onClose={handleDrawerToggle}
             menuItems={menuItems}
             sidebarOpen={sidebarOpen}
           />
-        </Drawer>
-        <Box component="main" sx={{ flexGrow: 1, p: 3, pt: 8, minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+        </div>
+        <div className="layout-content" style={{ marginLeft: sidebarOpen ? 0 : '-280px', transition: 'margin-left 0.3s' }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -273,15 +259,14 @@ const MainLayout = ({ user, onLogout, showHeader = true }) => {
             <Route path="/relatorios" element={<ReportsModule />} />
             <Route path="/configuracoes" element={<ConfigModule />} />
           </Routes>
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 
 function App() {
   const [user, setUser] = useState(null);
-
   const handleLogin = (userData) => {
     setUser(userData);
   };
