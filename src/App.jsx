@@ -65,7 +65,6 @@ import CommunicationModule from './modules/comunicacao/CommunicationModule';
 import ReportsModule from './modules/relatorios/ReportsModule';
 import ConfigModule from './modules/configuracoes/ConfigModule';
 // SidebarMenu import removed
-import LoginScreen from './components/LoginScreen';
 // menuItems import removed
 
 const drawerWidth = 280;
@@ -97,7 +96,7 @@ function App() {
       <CssBaseline />
       <CustomThemeProvider>
         <AuthProvider>
-          <Router>
+          <Router basename="/sistemaneon">
             <NavigationMenu />
             <Layout>
               <AppRoutes />

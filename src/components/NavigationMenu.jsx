@@ -1,3 +1,4 @@
+import ProfileMenu from './ProfileMenu';
 import React from 'react';
 import brand from '../assets/brand.json';
 import logo from '../assets/logo.svg';
@@ -79,9 +80,13 @@ export default function NavigationMenu() {
   return (
     <>
       <AppBar position="static" color="primary" sx={{ boxShadow: 0, background: `linear-gradient(90deg, ${brand.corPrincipal} 80%, ${brand.corSecundaria} 100%)` }}>
-        <Toolbar>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 2 }}>
-            <img src={logo} alt="Logo Neon" style={{ height: 46, marginRight: 16 }} />
+        <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 64 }}>
+          <Box sx={{ flex: 1 }} />
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <img src={logo} alt="Logo Neon" style={{ height: 46 }} />
+          </Box>
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <ProfileMenu />
           </Box>
         </Toolbar>
       </AppBar>

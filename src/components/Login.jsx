@@ -13,7 +13,7 @@ import { School as SchoolIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +24,8 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
+    // Converte usuario para email fictício
+    const email = `${usuario}@neonmaringa.com.br`;
     try {
       const result = await login(email, password);
       if (!result.success) {
@@ -86,13 +87,12 @@ const Login = () => {
               margin="normal"
               required
               fullWidth
-              id="email"
-              label="Email"
-              name="email"
-              autoComplete="email"
+              id="usuario"
+              label="Usuário"
+              name="usuario"
               autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
               disabled={loading}
             />
             <TextField

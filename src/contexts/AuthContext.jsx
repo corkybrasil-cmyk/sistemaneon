@@ -1,3 +1,10 @@
+import appwriteService from '../services/appwriteService';
+// Inicializa AppwriteService se necessário
+const APPWRITE_ENDPOINT = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1';
+const APPWRITE_PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID || 'neoneducacional';
+if (!appwriteService.initialized) {
+  appwriteService.initialize(APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID);
+}
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
@@ -42,25 +49,27 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      
-      // Simular login para desenvolvimento
-      if (email === 'admin@escola.com' && password === 'admin123') {
-        const userData = {
-          id: 1,
-          name: 'Administrador',
-          email: email,
-          role: 'admin'
-        };
-        
-        setUser(userData);
-        localStorage.setItem('authToken', 'mock-token-' + Date.now());
-        return { success: true };
-      } else {
-        return { success: false, error: 'Email ou senha incorretos' };
-      }
+      console.log('[LOGIN] email enviado:', email);
+      console.log('[LOGIN] senha enviada:', password);
+      const session = await appwriteService.login(email, password);
+      console.log('[LOGIN] session recebida:', session);
+      const account = await appwriteService.getCurrentUser();
+      console.log('[LOGIN] dados do usuário:', account);
+      setUser({
+        id: account.$id,
+        name: account.name,
+        email: account.email,
+        role: account.role || 'user',
+        photoUrl: account.photoUrl || null,
+      });
+      localStorage.setItem('authToken', session.$id);
+      return { success: true };
     } catch (error) {
-      console.error('Erro no login:', error);
-      return { success: false, error: 'Erro interno do servidor' };
+      console.error('[LOGIN] Erro no login:', error);
+      if (error && error.message) {
+        console.log('[LOGIN] Mensagem de erro:', error.message);
+      }
+      return { success: false, error: error.message || 'Email ou senha incorretos' };
     } finally {
       setLoading(false);
     }

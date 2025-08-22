@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Switch, Alert } from '@mui/material';
 import appwriteService from '../../services/appwriteService';
+import { Query } from 'appwrite';
 
 // Inicialize AppwriteService com endpoint e projectId válidos
 const APPWRITE_ENDPOINT = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1';
@@ -17,7 +18,7 @@ const UsersModule = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ email: '', password: '', nome: '', funcao: '', ativo: true });
+  const [form, setForm] = useState({ usuario: '', password: '', nome: '', funcao: '', ativo: true });
   const [success, setSuccess] = useState('');
 
   // Carrega usuários
@@ -43,27 +44,54 @@ const UsersModule = () => {
     setLoading(true);
     setError('');
     setSuccess('');
+    let createdDoc = null;
     try {
-      console.log('Tentando criar usuário:', form);
-  await appwriteService.account.create('unique()', form.email, form.password, form.nome);
-      console.log('Usuário criado no Auth');
-      await appwriteService.createDocument(DATABASE_ID, COLLECTION_ID, {
-        email: form.email,
+      console.log('Iniciando cadastro de usuário...');
+      // Checa se já existe usuário com o mesmo nome de usuário na coleção
+      const res = await appwriteService.listDocuments(DATABASE_ID, COLLECTION_ID, [
+        Query.equal('usuario', form.usuario)
+      ]);
+      console.log('Resultado da checagem de usuário na coleção:', res);
+      if (res.documents && res.documents.length > 0) {
+        setError('Já existe um usuário com este nome de usuário cadastrado.');
+        setLoading(false);
+        return;
+      }
+      console.log('Usuário não existe na coleção, criando documento...');
+      // Cria usuário na coleção primeiro
+      createdDoc = await appwriteService.createDocument(DATABASE_ID, COLLECTION_ID, {
+        usuario: form.usuario,
+        password: form.password,
         nome: form.nome,
+        sobrenome: form.sobrenome,
         funcao: form.funcao,
         ativo: form.ativo,
       });
-      console.log('Documento criado na coleção usuarios');
-      setSuccess('Usuário criado com sucesso!');
-      console.log('setSuccess chamado');
-      setOpen(false);
-      setForm({ email: '', password: '', nome: '', funcao: '', ativo: true });
-      fetchUsers();
+      console.log('Documento criado na coleção usuarios:', createdDoc);
+
+      // Cria usuário no Auth com email fictício
+      const fakeEmail = `${form.usuario}@neonmaringa.com.br`;
+      try {
+        await appwriteService.account.create('unique()', fakeEmail, form.password, `${form.nome} ${form.sobrenome}`);
+        console.log('Usuário criado no Auth com sucesso!');
+        setSuccess('Usuário criado com sucesso!');
+        setOpen(false);
+        setForm({ usuario: '', password: '', nome: '', sobrenome: '', funcao: '', ativo: true });
+        fetchUsers();
+      } catch (authErr) {
+        console.log('Falha ao criar usuário no Auth:', authErr);
+        // Se falhar no Auth, remove da coleção
+        if (createdDoc && createdDoc.$id) {
+          await appwriteService.deleteDocument(DATABASE_ID, COLLECTION_ID, createdDoc.$id);
+        }
+        setError(authErr.message || 'Erro ao criar usuário no Auth. Cadastro revertido.');
+      }
     } catch (err) {
-      console.error('Erro ao criar usuário:', err);
+      console.log('Falha geral no cadastro:', err);
       setError(err.message || 'Erro ao criar usuário');
       console.log('setError chamado');
     } finally {
+      console.log('Finalizando processo de cadastro.');
       setLoading(false);
     }
   };
@@ -72,13 +100,11 @@ const UsersModule = () => {
     <Box sx={{ maxWidth: 900, mx: 'auto', mt: 4 }}>
       <Typography variant="h5" gutterBottom>Usuários do Sistema</Typography>
       <Button variant="contained" color="primary" onClick={() => setOpen(true)} sx={{ mb: 2 }}>Novo Usuário</Button>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Email</TableCell>
+              {/* <TableCell>Email</TableCell> */}
               <TableCell>Nome</TableCell>
               <TableCell>Função</TableCell>
               <TableCell>Ativo</TableCell>
@@ -87,7 +113,7 @@ const UsersModule = () => {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.$id}>
-                <TableCell>{user.email}</TableCell>
+                {/* <TableCell>{user.email}</TableCell> */}
                 <TableCell>{user.nome}</TableCell>
                 <TableCell>{user.funcao}</TableCell>
                 <TableCell>
@@ -101,8 +127,11 @@ const UsersModule = () => {
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>Novo Usuário</DialogTitle>
         <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+          <TextField label="Usuário" value={form.usuario} onChange={e => setForm({ ...form, usuario: e.target.value })} fullWidth margin="normal" required />
           <TextField label="Nome" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} fullWidth margin="normal" required />
-          <TextField label="E-mail" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} fullWidth margin="normal" required />
+          <TextField label="Sobrenome" value={form.sobrenome} onChange={e => setForm({ ...form, sobrenome: e.target.value })} fullWidth margin="normal" required />
           <TextField label="Senha" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} fullWidth margin="normal" required />
           <TextField label="Função" value={form.funcao} onChange={e => setForm({ ...form, funcao: e.target.value })} fullWidth margin="normal" required />
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
