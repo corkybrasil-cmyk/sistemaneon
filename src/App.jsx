@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import appwriteService from './services/appwriteService';
 import './AppLayout.css';
 import Header from './components/Header';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
@@ -267,6 +268,18 @@ const MainLayout = ({ user, onLogout, showHeader = true }) => {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [pingStatus, setPingStatus] = useState('');
+
+  useEffect(() => {
+    // Usa variáveis de ambiente do Vite
+    const endpoint = import.meta.env.VITE_APPWRITE_ENDPOINT;
+    const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID;
+    appwriteService.initialize(endpoint, projectId);
+    appwriteService.ping()
+      .then(() => setPingStatus('Conexão com Appwrite: OK'))
+      .catch(() => setPingStatus('Conexão com Appwrite: Falhou'));
+  }, []);
+
   const handleLogin = (userData) => {
     setUser(userData);
   };
@@ -279,6 +292,11 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        <Box sx={{ position: 'fixed', top: 8, right: 8, zIndex: 9999 }}>
+          <Typography variant="caption" color={pingStatus.includes('OK') ? 'success.main' : 'error.main'}>
+            {pingStatus}
+          </Typography>
+        </Box>
         {user ? (
           <MainLayout user={user} onLogout={handleLogout} />
         ) : (

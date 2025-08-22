@@ -9,6 +9,7 @@ class AppwriteService {
     this.initialized = false;
   }
 
+
   initialize(endpoint, projectId) {
     if (!endpoint || !projectId) {
       console.warn('Appwrite endpoint or project ID not configured');
