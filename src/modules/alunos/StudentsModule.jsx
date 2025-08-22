@@ -34,10 +34,10 @@ const mockStudents = [
 ];
 
 const columns = [
-	{ field: 'name', headerName: 'Nome', flex: 1 },
-	{ field: 'idade', headerName: 'Idade', flex: 0.5, type: 'number' },
-	{ field: 'turno', headerName: 'Turno', flex: 0.7 },
-	{ field: 'modulo', headerName: 'Módulo', flex: 0.5, type: 'number' },
+		{ field: 'name', flex: 1 },
+		{ field: 'idade', flex: 0.5, type: 'number' },
+		{ field: 'turno', flex: 0.7 },
+		{ field: 'modulo', flex: 0.5, type: 'number' },
 ];
 
 const StudentsModule = () => {

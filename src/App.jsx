@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import appwriteService from './services/appwriteService';
 import './AppLayout.css';
-import Header from './components/Header';
+// Header import removed
 import Layout from './components/Layout';
 import AppRoutes from './routes/AppRoutes';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
@@ -35,9 +35,7 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  School as SchoolIcon,
-  People as PeopleIcon,
+  // Removed SidebarMenu and menuItems imports
   Assignment as AssignmentIcon,
   Grade as GradeIcon,
   AttachMoney as MoneyIcon,
@@ -64,7 +62,7 @@ import ScheduleModule from './modules/horarios/ScheduleModule';
 import CommunicationModule from './modules/comunicacao/CommunicationModule';
 import ReportsModule from './modules/relatorios/ReportsModule';
 import ConfigModule from './modules/configuracoes/ConfigModule';
-import SidebarMenu from './components/SidebarMenu';
+// SidebarMenu import removed
 import LoginScreen from './components/LoginScreen';
 import menuItems from './config/menuItems';
 

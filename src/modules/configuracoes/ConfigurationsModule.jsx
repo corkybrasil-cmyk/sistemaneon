@@ -11,7 +11,6 @@ import {
   Tab,
   Card,
   CardContent,
-  CardHeader,
   IconButton,
   InputAdornment,
   CircularProgress,
@@ -90,20 +89,16 @@ const ConfigurationsModule = () => {
 
   const renderConfigCard = (title, service, fields, description) => (
     <Card sx={{ mb: 3 }}>
-      <CardHeader
-        title={title}
-        subheader={description}
-        action={
-          <Button
-            variant="contained"
-            startIcon={saveStatus[service] === 'saving' ? <CircularProgress size={20} /> : <SaveIcon />}
-            onClick={() => handleSave(service)}
-            disabled={saveStatus[service] === 'saving'}
-          >
-            Salvar
-          </Button>
-        }
-      />
+      <Typography variant="h6">{title}</Typography>
+      <Typography variant="body2">{description}</Typography>
+      <Button
+        variant="contained"
+        startIcon={saveStatus[service] === 'saving' ? <CircularProgress size={20} /> : <SaveIcon />}
+        onClick={() => handleSave(service)}
+        disabled={saveStatus[service] === 'saving'}
+      >
+        Salvar
+      </Button>
       <CardContent>
         {saveStatus[service] === 'success' && (
           <Alert severity="success" sx={{ mb: 2 }}>
@@ -250,10 +245,8 @@ const ConfigurationsModule = () => {
 
         <TabPanel value={activeTab} index={3}>
           <Card>
-            <CardHeader
-              title="Configurações Gerais"
-              subheader="Configurações globais do sistema"
-            />
+            <Typography variant="h6">Configurações Gerais</Typography>
+            <Typography variant="body2">Configurações globais do sistema</Typography>
             <CardContent>
               <Alert severity="info">
                 <Typography variant="body2">

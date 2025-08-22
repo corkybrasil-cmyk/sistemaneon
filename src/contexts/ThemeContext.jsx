@@ -57,15 +57,7 @@ export const CustomThemeProvider = ({ children }) => {
         'sans-serif',
       ].join(','),
     },
-    components: {
-      MuiDrawer: {
-        styleOverrides: {
-          paper: {
-            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
-          },
-        },
-      },
-    },
+  components: {},
   });
 
   const value = {
