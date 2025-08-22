@@ -13,7 +13,6 @@ import logo from './assets/logo.svg';
 import {
   Box,
   Drawer,
-  AppBar,
   Toolbar,
   List,
   Typography,
@@ -64,7 +63,7 @@ import ReportsModule from './modules/relatorios/ReportsModule';
 import ConfigModule from './modules/configuracoes/ConfigModule';
 // SidebarMenu import removed
 import LoginScreen from './components/LoginScreen';
-import menuItems from './config/menuItems';
+// menuItems import removed
 
 const drawerWidth = 280;
 
