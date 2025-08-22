@@ -71,7 +71,7 @@ src/
 git clone [URL_DO_REPOSITORIO]
 
 # Entre na pasta do projeto
-cd erp-neoneducacional
+cd sistemaneon
 
 # Instale as dependências
 npm install
