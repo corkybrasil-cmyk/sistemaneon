@@ -48,7 +48,7 @@ import {
 } from '@mui/icons-material';
 
 // Importar componentes
-import Dashboard from './modules/dashboard/DashboardClean';
+import Dashboard from './modules/dashboard/Dashboard';
 import StudentsModule from './modules/alunos/StudentsModule';
 import ProfessorsModule from './modules/professores/ProfessorsModule';
 import AttendanceModule from './modules/frequencia/AttendanceModule';
