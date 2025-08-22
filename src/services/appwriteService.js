@@ -5,8 +5,8 @@ class AppwriteService {
   async ping() {
     if (!this.initialized) return Promise.reject('Appwrite não inicializado');
     try {
-      // Tenta buscar informações do projeto (ou qualquer endpoint público)
-      await this.client.call('GET', '/health');
+      // Tenta listar documentos da coleção 'alunos' no database 'sistema'
+      await this.databases.listDocuments('sistema', 'alunos');
       return Promise.resolve();
     } catch (error) {
       return Promise.reject(error);

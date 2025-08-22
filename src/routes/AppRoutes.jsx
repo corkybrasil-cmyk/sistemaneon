@@ -41,33 +41,30 @@ const AppRoutes = () => {
     );
   }
 
+  // Importação do módulo de usuários
+  const UsersModule = React.lazy(() => import('../modules/usuarios/UsersModule'));
+
   return (
-    <Routes>
-      <Route path="/login" element={<Navigate to="/" replace />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/alunos/*" element={<StudentsModule />} />
-                <Route path="/responsaveis/*" element={<ResponsiblesModule />} />
-                <Route path="/chamada/*" element={<AttendanceModule />} />
-                <Route path="/financeiro/*" element={<FinancialModule />} />
-                <Route path="/turmas/*" element={<ClassesModule />} />
-                <Route path="/ocorrencias/*" element={<IncidentsModule />} />
-                <Route path="/contas-a-pagar/*" element={<AccountsPayableModule />} />
-                <Route path="/whatsapp/*" element={<WhatsAppModule />} />
-                <Route path="/configuracoes/*" element={<ConfigurationsModule />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/alunos" element={<StudentsModule />} />
+        <Route path="/responsaveis" element={<ResponsiblesModule />} />
+        <Route path="/chamada" element={<AttendanceModule />} />
+        <Route path="/financeiro" element={<FinancialModule />} />
+        <Route path="/turmas" element={<ClassesModule />} />
+        <Route path="/ocorrencias" element={<IncidentsModule />} />
+        <Route path="/contas-a-pagar" element={<AccountsPayableModule />} />
+        <Route path="/whatsapp" element={<WhatsAppModule />} />
+        <Route path="/configuracoes" element={<ConfigurationsModule />} />
+        <Route path="/usuarios" element={
+          <React.Suspense fallback={<div>Carregando usuários...</div>}>
+            <UsersModule />
+          </React.Suspense>
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
   );
 };
 

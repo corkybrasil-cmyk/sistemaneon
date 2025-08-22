@@ -52,6 +52,7 @@ const menuItems = [
   { text: 'Contas a Pagar', icon: <PaymentIcon />, path: '/contas-a-pagar' },
   { text: 'WhatsApp', icon: <WhatsAppIcon />, path: '/whatsapp' },
   { text: 'Configurações', icon: <SettingsIcon />, path: '/configuracoes' },
+  { text: 'Usuários', icon: <AccountCircle />, path: '/usuarios' },
 ];
 
 const Layout = ({ children }) => {
