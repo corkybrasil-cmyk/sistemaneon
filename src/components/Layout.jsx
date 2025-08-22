@@ -21,29 +21,8 @@ const Layout = ({ children }) => {
   return (
     <>
 
-      <div
-        id="principal-sidebar"
-        style={{
-          display: 'flex',
-        }}
-      >
-        <div
-          id="sidebar"
-          style={{
-            width: 240,
-            height: '100%',
-          }}
-        >
-          <Sidebar />
-        </div>
-        <div
-          id="principal"
-          style={{
-            flex: 1,
-          }}
-        >
-          {children}
-        </div>
+      <div id="principal" style={{ margin: '32px 32px 0 32px' }}>
+        {children}
       </div>
     </>
   );

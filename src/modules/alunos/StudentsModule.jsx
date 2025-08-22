@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import brand from '../../assets/brand.json';
 import { TextField, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText } from '@mui/material';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
@@ -73,7 +74,19 @@ const StudentsModule = () => {
 	};
 
 	const handleOpenAddModal = () => {
-		setNewStudent({ name: '', idade: '', turno: '', modulo: '' });
+		setNewStudent({
+			responsavelNome: '',
+			responsavelCPF: '',
+			responsavelEmail: '',
+			responsavelEndereco: '',
+			responsavelNumero: '',
+			responsavelNascimento: '',
+			responsavelTelefone: '',
+			alunoNome: '',
+			alunoNascimento: '',
+			turno: '',
+			diasSemana: [],
+		});
 		setOpenAddModal(true);
 	};
 
@@ -119,7 +132,7 @@ const StudentsModule = () => {
 				<Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
 					Gestão de Alunos
 				</Typography>
-				<Button variant="contained" onClick={handleOpenAddModal}>Matricular novo aluno</Button>
+				<Button variant="contained" onClick={handleOpenAddModal} sx={{ background: brand.corPrincipal, color: '#fff', fontWeight: 600, '&:hover': { background: brand.corSecundaria, color: brand.corPrincipal } }}>Matricular novo aluno</Button>
 			<Dialog open={openAddModal} onClose={handleCloseAddModal} maxWidth="md" fullWidth>
 				<DialogTitle>Matricular novo aluno</DialogTitle>
 				<DialogContent>

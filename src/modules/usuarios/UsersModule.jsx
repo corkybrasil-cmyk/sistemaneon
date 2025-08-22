@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Switch, Alert } from '@mui/material';
 import appwriteService from '../../services/appwriteService';
 
+// Inicialize AppwriteService com endpoint e projectId válidos
+const APPWRITE_ENDPOINT = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1';
+const APPWRITE_PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID || 'neoneducacional';
+if (!appwriteService.initialized) {
+  appwriteService.initialize(APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID);
+}
+
 const DATABASE_ID = 'sistema';
 const COLLECTION_ID = 'usuarios';
 
@@ -37,21 +44,25 @@ const UsersModule = () => {
     setError('');
     setSuccess('');
     try {
-      // Cria usuário no Auth
-      await appwriteService.account.create(form.email, form.password, form.nome);
-      // Adiciona na coleção usuarios
+      console.log('Tentando criar usuário:', form);
+  await appwriteService.account.create('unique()', form.email, form.password, form.nome);
+      console.log('Usuário criado no Auth');
       await appwriteService.createDocument(DATABASE_ID, COLLECTION_ID, {
         email: form.email,
         nome: form.nome,
         funcao: form.funcao,
         ativo: form.ativo,
       });
+      console.log('Documento criado na coleção usuarios');
       setSuccess('Usuário criado com sucesso!');
+      console.log('setSuccess chamado');
       setOpen(false);
       setForm({ email: '', password: '', nome: '', funcao: '', ativo: true });
       fetchUsers();
     } catch (err) {
+      console.error('Erro ao criar usuário:', err);
       setError(err.message || 'Erro ao criar usuário');
+      console.log('setError chamado');
     } finally {
       setLoading(false);
     }

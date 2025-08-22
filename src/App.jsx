@@ -1,3 +1,5 @@
+import NavigationMenu from './components/NavigationMenu';
+import brand from './assets/brand.json';
 import React, { useState, useEffect } from 'react';
 import appwriteService from './services/appwriteService';
 import './AppLayout.css';
@@ -71,10 +73,16 @@ const drawerWidth = 280;
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: brand.corPrincipal,
     },
     secondary: {
-      main: '#dc004e',
+      main: brand.corSecundaria,
+    },
+    tertiary: {
+      main: brand.corTerciaria,
+    },
+    background: {
+      default: '#f5f5f5',
     },
   },
 });
@@ -84,36 +92,13 @@ const theme = createTheme({
 
 
 function App() {
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    // Usa variáveis de ambiente do Vite
-    const endpoint = import.meta.env.VITE_APPWRITE_ENDPOINT;
-    const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID;
-    appwriteService.initialize(endpoint, projectId);
-  }, []);
-
-  const handleLogin = (userData) => {
-    setUser(userData);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-  };
-
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <CustomThemeProvider>
         <AuthProvider>
           <Router>
-            <AppBar position="static" color="primary">
-              <Toolbar>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                  ERP NeonEducacional
-                </Typography>
-              </Toolbar>
-            </AppBar>
+            <NavigationMenu />
             <Layout>
               <AppRoutes />
             </Layout>
