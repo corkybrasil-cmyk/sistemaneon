@@ -92,7 +92,7 @@ const Layout = ({ children }) => {
   };
 
   const drawer = (
-    <Box>
+    <>
       <Toolbar>
         <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
           ERP NeonEducacional
@@ -134,7 +134,7 @@ const Layout = ({ children }) => {
           </ListItem>
         ))}
       </List>
-    </Box>
+    </>
   );
 
   return (
