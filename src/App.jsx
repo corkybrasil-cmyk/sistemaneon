@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Header from './components/Header';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -24,6 +25,7 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
+  Divider,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -179,7 +181,7 @@ const LoginScreen = ({ onLogin }) => {
   );
 };
 
-const MainLayout = ({ user, onLogout }) => {
+const MainLayout = ({ user, onLogout, showHeader = true }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -219,66 +221,17 @@ const MainLayout = ({ user, onLogout }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar
-        position="static"
-        sx={{ backgroundColor: '#4B0097', color: theme.palette.text.primary }}
-      >
-        <Toolbar sx={{ minHeight: 64, px: 2 }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <img 
-              src={logo} 
-              alt="Logo" 
-              style={{ height: '40.5px', width: 'auto', maxWidth: '270px' }} 
-            />
-          </Box>
-          <IconButton
-            color="inherit"
-            onClick={handleProfileMenuOpen}
-            sx={{ p: 0 }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
-              {user?.name?.charAt(0) || 'A'}
-            </Avatar>
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleProfileMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-          >
-            <MenuItem onClick={handleProfileMenuClose}>
-              <ListItemIcon>
-                <AccountCircle fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>
-                <Typography variant="body2">
-                  {user?.name || 'Usuário'}
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  {user?.email || 'usuario@escola.com'}
-                </Typography>
-              </ListItemText>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={onLogout}>
-              <ListItemIcon>
-                <ExitToApp fontSize="small" />
-              </ListItemIcon>
-              Sair
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+      {showHeader && (
+        <Header
+          theme={theme}
+          user={user}
+          anchorEl={anchorEl}
+          handleProfileMenuOpen={handleProfileMenuOpen}
+          handleProfileMenuClose={handleProfileMenuClose}
+          onLogout={onLogout}
+          handleDrawerToggle={handleDrawerToggle}
+        />
+      )}
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         <Drawer
           variant="permanent"
@@ -298,13 +251,6 @@ const MainLayout = ({ user, onLogout }) => {
           }}
           open
         >
-          <Toolbar sx={{ justifyContent: 'center', backgroundColor: '#4B0097' }}>
-            {!isMobile && (
-              <IconButton onClick={handleDrawerToggle}>
-                {sidebarOpen ? <ChevronLeftIcon sx={{ color: '#fff' }} /> : <ChevronRightIcon sx={{ color: '#fff' }} />}
-              </IconButton>
-            )}
-          </Toolbar>
           <SidebarMenu
             open={sidebarOpen}
             onClose={handleDrawerToggle}
@@ -312,7 +258,7 @@ const MainLayout = ({ user, onLogout }) => {
             sidebarOpen={sidebarOpen}
           />
         </Drawer>
-        <Box component="main" sx={{ flexGrow: 1, p: 3, minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+        <Box component="main" sx={{ flexGrow: 1, p: 3, pt: 8, minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
