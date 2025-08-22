@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 // Layout Components
-import Layout from '../components/Layout';
 import Login from '../components/Login';
 
 // Module Components
@@ -17,6 +16,11 @@ import IncidentsModule from '../modules/ocorrencias/IncidentsModule';
 import AccountsPayableModule from '../modules/contas-a-pagar/AccountsPayableModule';
 import WhatsAppModule from '../modules/whatsapp/WhatsAppModule';
 import ConfigurationsModule from '../modules/configuracoes/ConfigurationsModule';
+import ProfessorsModule from '../modules/professores/ProfessorsModule';
+import GradesModule from '../modules/notas/GradesModule';
+import ScheduleModule from '../modules/horarios/ScheduleModule';
+import CommunicationModule from '../modules/comunicacao/CommunicationModule';
+import ReportsModule from '../modules/relatorios/ReportsModule';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -45,26 +49,30 @@ const AppRoutes = () => {
   const UsersModule = React.lazy(() => import('../modules/usuarios/UsersModule'));
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/alunos" element={<StudentsModule />} />
-        <Route path="/responsaveis" element={<ResponsiblesModule />} />
-        <Route path="/chamada" element={<AttendanceModule />} />
-        <Route path="/financeiro" element={<FinancialModule />} />
-        <Route path="/turmas" element={<ClassesModule />} />
-        <Route path="/ocorrencias" element={<IncidentsModule />} />
-        <Route path="/contas-a-pagar" element={<AccountsPayableModule />} />
-        <Route path="/whatsapp" element={<WhatsAppModule />} />
-        <Route path="/configuracoes" element={<ConfigurationsModule />} />
-        <Route path="/usuarios" element={
-          <React.Suspense fallback={<div>Carregando usuários...</div>}>
-            <UsersModule />
-          </React.Suspense>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <Routes>
+  <Route path="/dashboard" element={<Dashboard />} />
+  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/alunos" element={<StudentsModule />} />
+      <Route path="/professores" element={<ProfessorsModule />} />
+      <Route path="/responsaveis" element={<ResponsiblesModule />} />
+      <Route path="/chamada" element={<AttendanceModule />} />
+      <Route path="/notas" element={<GradesModule />} />
+      <Route path="/financeiro" element={<FinancialModule />} />
+      <Route path="/turmas" element={<ClassesModule />} />
+      <Route path="/horarios" element={<ScheduleModule />} />
+      <Route path="/comunicacao" element={<CommunicationModule />} />
+      <Route path="/relatorios" element={<ReportsModule />} />
+      <Route path="/configuracoes" element={<ConfigurationsModule />} />
+      <Route path="/ocorrencias" element={<IncidentsModule />} />
+      <Route path="/contas-a-pagar" element={<AccountsPayableModule />} />
+      <Route path="/whatsapp" element={<WhatsAppModule />} />
+      <Route path="/usuarios" element={
+        <React.Suspense fallback={<div>Carregando usuários...</div>}>
+          <UsersModule />
+        </React.Suspense>
+      } />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 

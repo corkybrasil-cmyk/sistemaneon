@@ -3,6 +3,7 @@ import appwriteService from './services/appwriteService';
 import './AppLayout.css';
 // Header import removed
 import Layout from './components/Layout';
+import AppBar from '@mui/material/AppBar';
 import AppRoutes from './routes/AppRoutes';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -106,6 +107,13 @@ function App() {
       <CustomThemeProvider>
         <AuthProvider>
           <Router>
+            <AppBar position="static" color="primary">
+              <Toolbar>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                  ERP NeonEducacional
+                </Typography>
+              </Toolbar>
+            </AppBar>
             <Layout>
               <AppRoutes />
             </Layout>

@@ -219,17 +219,17 @@ const StudentsModule = () => {
 				</TextField>
 			</Box>
 
-			<Box sx={{ height: 400, width: '100%' }}>
+			<Box sx={{ height: 500, width: '100%', overflow: 'auto' }}>
 				<DataGrid
 					rows={filteredStudents}
 					columns={columns}
-					pageSize={5}
+					pageSize={10}
 					rowsPerPageOptions={[5, 10, 20]}
 					pagination
 					disableSelectionOnClick
 					onRowClick={handleRowClick}
-					autoHeight
 					sx={{
+						height: '100%',
 						'.MuiDataGrid-cell:focus, .MuiDataGrid-cell:focus-within': {
 							outline: 'none',
 							backgroundColor: 'inherit',
