@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import appwriteService from '../../services/appwriteService';
-import { Box, Typography, Button, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText } from '@mui/material';
+import { Box, Typography, Button, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, TextField } from '@mui/material';
 
 const responsavelFields = [
   { field: 'nome', headerName: 'Nome', flex: 1, hideable: false },
