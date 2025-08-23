@@ -1,6 +1,34 @@
 import { Client, Databases, Account, Storage } from 'appwrite';
 
 class AppwriteService {
+  async updateDocument(databaseId, collectionId, documentId, data) {
+    if (!this.initialized || !this.databases) throw new Error('Appwrite não inicializado');
+    try {
+      return await this.databases.updateDocument(databaseId, collectionId, documentId, data);
+    } catch (error) {
+      console.error('Erro ao atualizar documento:', error);
+      throw error;
+    }
+  }
+  async createDocument(databaseId, collectionId, documentId, data, permissions = []) {
+    if (!this.initialized || !this.databases) throw new Error('Appwrite não inicializado');
+    if (typeof data !== 'object' || data === null) throw new Error('Dados do documento devem ser um objeto válido');
+    try {
+      return await this.databases.createDocument(databaseId, collectionId, documentId, data, permissions);
+    } catch (error) {
+      console.error('Erro ao criar documento:', error);
+      throw error;
+    }
+  }
+  async listDocuments(databaseId, collectionId, queries = []) {
+    if (!this.initialized || !this.databases) throw new Error('Appwrite não inicializado');
+    try {
+      return await this.databases.listDocuments(databaseId, collectionId, queries);
+    } catch (error) {
+      console.error('Erro ao listar documentos:', error);
+      throw error;
+    }
+  }
   constructor() {
     this.client = new Client();
     this.databases = null;
@@ -33,8 +61,13 @@ class AppwriteService {
   async login(email, password) {
     if (!this.initialized || !this.account) throw new Error('Appwrite não inicializado');
     try {
-      // Appwrite SDK v18.x: createSession replaces createEmailSession
-      return await this.account.createSession(email, password);
+      // Garante que não há sessão ativa antes de criar uma nova
+      try {
+        await this.logout();
+      } catch (logoutError) {
+        // Ignora erro de logout se não houver sessão
+      }
+      return await this.account.createEmailPasswordSession(email, password);
     } catch (error) {
       console.error('Erro no login:', error);
       throw error;
