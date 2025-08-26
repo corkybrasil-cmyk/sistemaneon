@@ -1,0 +1,10 @@
+{
+  "name": "reserve-sequence",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "MIT",
+  "dependencies": {
+    "node-appwrite": "^13.0.0"
+  }
+}

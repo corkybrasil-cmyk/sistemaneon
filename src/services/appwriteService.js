@@ -1,4 +1,4 @@
-import { Client, Databases, Account, Storage } from 'appwrite';
+import { Client, Databases, Account, Storage, Functions } from 'appwrite';
 
 class AppwriteService {
   async updateDocument(databaseId, collectionId, documentId, data) {
@@ -34,6 +34,7 @@ class AppwriteService {
     this.databases = null;
     this.account = null;
     this.storage = null;
+  this.functions = null;
     this.initialized = false;
   }
 
@@ -49,11 +50,23 @@ class AppwriteService {
       this.databases = new Databases(this.client);
       this.account = new Account(this.client);
       this.storage = new Storage(this.client);
+      this.functions = new Functions(this.client);
       this.initialized = true;
       return true;
     } catch (error) {
       console.error('Erro ao inicializar Appwrite:', error);
       return false;
+    }
+  }
+
+  async executeFunction(functionId, data = {}, isAsync = false) {
+    if (!this.initialized || !this.functions) throw new Error('Appwrite não inicializado');
+    try {
+      const payload = typeof data === 'string' ? data : JSON.stringify(data);
+      return await this.functions.createExecution(functionId, payload, isAsync);
+    } catch (error) {
+      console.error('Erro ao executar função:', error);
+      throw error;
     }
   }
 
