@@ -15,10 +15,10 @@ Esta função cria, de forma segura, uma sequência numérica por responsável (
   - Database: `sistema`
   - Collections:
     - `finance_counters` (documento por responsável, id = `responsavelId`)
-      - Atributos: `key` (string), `next` (integer), `updatedAt` (datetime)
+      - Atributos: apenas `nextSeq` (integer)
     - `finance_locks` (locks de curta duração)
-      - Atributos: `key` (string), `createdAt` (datetime), `expireAt` (datetime)
-  - Opcional: índice em `finance_locks.expireAt` para limpeza/consulta.
+      - Sem atributos (a função usa o metadado `$updatedAt` para expiração)
+  - A expiração do lock é baseada em `$updatedAt` + `LOCK_TTL_MS` (env da Function). Não é necessário índice adicional.
 
 Permissões recomendadas (via API Key da Function):
 - Databases: acesso de leitura/escrita no database `sistema` e nas coleções acima.
@@ -29,7 +29,7 @@ O código está em `appwrite/functions/reserve-sequence/`:
 - `index.js`: lógica da função
 - `package.json`: dependência `node-appwrite`
 
-A função usa um documento de lock (`finance_locks/lock_<responsavelId>`) com TTL curto para garantir exclusão mútua. Em seguida, usa/atualiza o documento em `finance_counters/<responsavelId>` para reservar o range solicitado.
+A função cria um documento de lock vazio (`finance_locks/lock_<responsavelId>`) e considera-o expirado quando o tempo desde `$updatedAt` ultrapassa `LOCK_TTL_MS`. Em seguida, usa/atualiza `finance_counters/<responsavelId>` incrementando o campo `nextSeq` para reservar o range solicitado.
 
 ## Deploy com Appwrite CLI (Windows PowerShell)
 

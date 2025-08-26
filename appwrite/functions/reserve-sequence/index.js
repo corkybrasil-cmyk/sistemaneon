@@ -45,17 +45,16 @@ module.exports = async function (req, res) {
       .setProject(projectId)
       .setKey(apiKey);
 
-    const databases = new sdk.Databases(client);
+  const databases = new sdk.Databases(client);
 
-    // Ajuste conforme seu projeto
-    const databaseId = process.env.DATABASE_ID || 'sistema';
-    const countersCollection = process.env.COUNTERS_COLLECTION_ID || 'finance_counters';
-    const locksCollection = process.env.LOCKS_COLLECTION_ID || 'finance_locks';
+  // Ajuste conforme seu projeto
+  const databaseId = process.env.DATABASE_ID || 'sistema';
+  const countersCollection = process.env.COUNTERS_COLLECTION_ID || 'finance_counters';
+  const locksCollection = process.env.LOCKS_COLLECTION_ID || 'finance_locks';
 
-    const lockId = `lock_${responsavelId}`;
-    const now = new Date();
-    const ttlMs = Number(process.env.LOCK_TTL_MS || 15000); // 15s
-    const expireAt = new Date(now.getTime() + ttlMs).toISOString();
+  const lockId = `lock_${responsavelId}`;
+  const now = new Date();
+  const ttlMs = Number(process.env.LOCK_TTL_MS || 15000); // 15s
 
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -64,22 +63,19 @@ module.exports = async function (req, res) {
       const maxAttempts = 20; // ~5s max at 250ms interval
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-          await databases.createDocument(databaseId, locksCollection, lockId, {
-            createdAt: now.toISOString(),
-            expireAt,
-            key: responsavelId,
-          });
+          // Coleção de locks sem atributos: criar documento vazio
+          await databases.createDocument(databaseId, locksCollection, lockId, {});
           return true;
         } catch (e) {
           // If exists, check expiry
           try {
             const doc = await databases.getDocument(databaseId, locksCollection, lockId);
-            const exp = new Date(doc.expireAt || doc.$updatedAt || 0);
-            if (Date.now() - exp.getTime() > 0) {
-              // expired -> clean
-              try {
-                await databases.deleteDocument(databaseId, locksCollection, lockId);
-              } catch (_) {}
+            // Sem atributos customizados; usar $updatedAt como referência de expiração
+            const updatedAt = new Date(doc.$updatedAt || 0).getTime();
+            const age = Date.now() - updatedAt;
+            if (age > ttlMs) {
+              // expirado -> limpar
+              try { await databases.deleteDocument(databaseId, locksCollection, lockId); } catch (_) {}
             }
           } catch (_) {
             // not found, will retry
@@ -101,7 +97,7 @@ module.exports = async function (req, res) {
 
     let start;
     try {
-      // Read or create counter
+      // Read or create counter (atributo único: nextSeq)
       let counter;
       try {
         counter = await databases.getDocument(databaseId, countersCollection, responsavelId);
@@ -109,9 +105,7 @@ module.exports = async function (req, res) {
         // Create with next=1
         try {
           counter = await databases.createDocument(databaseId, countersCollection, responsavelId, {
-            key: responsavelId,
-            next: 1,
-            updatedAt: now.toISOString(),
+            nextSeq: 1,
           });
         } catch (e2) {
           // Possible race: read again
@@ -119,13 +113,12 @@ module.exports = async function (req, res) {
         }
       }
 
-      const current = Number(counter.next || 1);
+      const current = Number(counter.nextSeq || 1);
       start = current;
       const newNext = current + count;
 
       await databases.updateDocument(databaseId, countersCollection, responsavelId, {
-        next: newNext,
-        updatedAt: new Date().toISOString(),
+        nextSeq: newNext,
       });
 
       return res.json({ ok: true, start });

@@ -31,16 +31,45 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, ExpandLess, ExpandMore } from '@mui/icons-material';
 
+// Utilitários de status (agregado e cor)
+export function getStatusAgregado(itens) {
+	if (!Array.isArray(itens) || itens.length === 0) return 'Misto';
+	const statusSet = new Set(itens.map((i) => String(i.status || '').toLowerCase()));
+	if (statusSet.size === 1) {
+		const s = Array.from(statusSet)[0];
+		if (s === 'pago') return 'Pago';
+		if (s === 'pendente') return 'Pendente';
+		if (s === 'atrasado') return 'Atrasado';
+		return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Misto';
+	}
+	return 'Misto';
+}
+
+export function getStatusColor(status) {
+	if (status === 'Pago') return 'success';
+	if (status === 'Pendente') return 'warning';
+	if (status === 'Atrasado') return 'error';
+	return 'default';
+}
+
+// Capitaliza a primeira letra de uma string
+function capitalizeFirst(str) {
+	if (!str) return '';
+	const s = String(str);
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 const FinancialModule = () => {
 		const [lancamentos, setLancamentos] = useState([]);
 	const [expanded, setExpanded] = useState({});
+	const [expandedAluno, setExpandedAluno] = useState({});
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 		const now = new Date();
 		const defaultCompetencia = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 		const [filterCompetencia, setFilterCompetencia] = useState(defaultCompetencia);
 		const [filterStatus, setFilterStatus] = useState(''); // '', 'pendente', 'pago', 'atrasado'
-		const [filterMode, setFilterMode] = useState('competencia'); // 'competencia' | 'vencimento'
+		// Filtro único por vencimento (mês)
 			const [filterResponsavel, setFilterResponsavel] = useState('');
 			const [responsaveisAll, setResponsaveisAll] = useState([]);
 
@@ -64,6 +93,110 @@ const FinancialModule = () => {
 				const [formErrors, setFormErrors] = useState({});
 				const [formErrorMsg, setFormErrorMsg] = useState('');
 
+			// Lançamento avulso
+			const [openAvulso, setOpenAvulso] = useState(false);
+			const [formAvulso, setFormAvulso] = useState({
+				responsavelId: '',
+				alunoId: '',
+				tipo: '',
+				vencimento: '',
+				valor: '',
+				status: 'pendente',
+				descricao: ''
+			});
+			const [alunosForRespAvulso, setAlunosForRespAvulso] = useState([]);
+			const [savingAvulso, setSavingAvulso] = useState(false);
+			const tiposLancamento = [
+				{ value: 'mensalidade', label: 'Mensalidade' },
+				{ value: 'taxa_matricula', label: 'Taxa de matrícula' },
+				{ value: 'material', label: 'Material' },
+				{ value: 'servico', label: 'Serviço' },
+				{ value: 'outro', label: 'Outro' },
+			];
+
+			const handleOpenAvulso = () => {
+				setFormAvulso({ responsavelId: '', alunoId: '', tipo: '', vencimento: '', valor: '', status: 'pendente', descricao: '' });
+				setAlunosForRespAvulso([]);
+				setFormErrors({});
+				setFormErrorMsg('');
+				setOpenAvulso(true);
+			};
+
+			useEffect(() => {
+				if (!openAvulso) return;
+				if (!formAvulso.responsavelId) { setAlunosForRespAvulso([]); return; }
+				appwriteService
+					.listDocuments('sistema', 'alunos')
+					.then((r) => {
+						const docs = r?.documents || [];
+						setAlunosForRespAvulso(docs.filter((d) => (d.responsavelId || d.responsavelID) === formAvulso.responsavelId));
+					})
+					.catch(() => setAlunosForRespAvulso([]));
+			}, [openAvulso, formAvulso.responsavelId]);
+
+			const handleSaveAvulso = async () => {
+				if (savingAvulso) return;
+				const errs = {};
+				if (!formAvulso.responsavelId) errs.responsavelId = 'Selecione o responsável';
+				if (!formAvulso.alunoId) errs.alunoId = 'Selecione o aluno';
+				if (!formAvulso.tipo) errs.tipo = 'Selecione o tipo';
+				if (!formAvulso.vencimento) errs.vencimento = 'Informe a data';
+				if (!formAvulso.valor || Number(formAvulso.valor) <= 0) errs.valor = 'Informe um valor válido';
+				if (!formAvulso.status) errs.status = 'Selecione o status';
+				setFormErrors(errs);
+				if (Object.keys(errs).length > 0) { setFormErrorMsg('Preencha os campos obrigatórios.'); return; }
+				setSavingAvulso(true);
+				try {
+					const resp = responsaveisAll.find((r) => r.$id === formAvulso.responsavelId);
+					const aluno = alunosForRespAvulso.find((a) => a.$id === formAvulso.alunoId);
+					const due = new Date(formAvulso.vencimento + 'T00:00:00');
+					const competencia = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}`;
+					// Reservar 1 sequência para gerar ID
+					const FUNCTION_ID = import.meta.env.VITE_APPWRITE_RESERVE_FUNCTION_ID || 'reserveFinanceSequence';
+					const exec = await appwriteService.executeFunction(FUNCTION_ID, { responsavelId: formAvulso.responsavelId, count: 1 });
+					let nextSeq = 1;
+					try {
+						const body = JSON.parse(exec.responseBody || exec.stdout || '{}');
+						if (body && typeof body.start === 'number') nextSeq = body.start;
+					} catch {}
+					let baseId = `${formAvulso.responsavelId}_${nextSeq}`;
+					baseId = baseId.replace(/[^a-zA-Z0-9._-]/g, '');
+					if (baseId.length > 36) baseId = baseId.slice(0, 36);
+					await appwriteService.createDocument('sistema', 'lancamentos_financeiros', baseId, {
+						responsavelId: formAvulso.responsavelId,
+						responsavelNome: resp?.nome || '',
+						alunoId: formAvulso.alunoId,
+						alunoNome: aluno?.nome || '',
+						tipo: formAvulso.tipo,
+						vencimento: due.toISOString(),
+						competencia,
+						valor: Number(formAvulso.valor),
+						status: formAvulso.status,
+						descricao: formAvulso.descricao || '',
+						criadoEm: new Date().toISOString(),
+					});
+					setOpenAvulso(false);
+					await fetchData();
+				} catch (e) {
+					console.error('Erro ao criar lançamento avulso', e);
+					setFormErrorMsg('Não foi possível salvar o lançamento avulso.');
+				} finally {
+					setSavingAvulso(false);
+				}
+			};
+
+			// Modal de detalhes (responsável, aluno ou lançamento)
+			const [detailOpen, setDetailOpen] = useState(false);
+			const [detail, setDetail] = useState({ type: null, data: null });
+			const openDetail = (type, data) => {
+				setDetail({ type, data });
+				setDetailOpen(true);
+			};
+			const closeDetail = () => {
+				setDetailOpen(false);
+				setDetail({ type: null, data: null });
+			};
+
 		useEffect(() => {
 				// Carregar lista de responsáveis para o filtro global
 				appwriteService
@@ -77,41 +210,22 @@ const FinancialModule = () => {
 			setLoading(true);
 			setError('');
 			try {
-					let res;
-							if (filterMode === 'competencia' || (filterMode === 'vencimento' && filterResponsavel)) {
-						// Consulta por competência (index simples). Filtra status em memória.
-								const queries = [Query.equal('competencia', filterCompetencia)];
-								if (filterResponsavel) queries.push(Query.equal('responsavelId', filterResponsavel));
-								res = await appwriteService.listDocuments('sistema', 'lancamentos_financeiros', queries);
-					} else {
-						// Modo por vencimento: usa índice combinado (vencimento+status). Se status não for definido, faz fallback para competência.
-						if (filterStatus) {
-							const [year, month] = filterCompetencia.split('-').map(Number);
-							const start = new Date(year, month - 1, 1);
-							const end = new Date(year, month, 0, 23, 59, 59, 999);
-									const queries = [
-								Query.greaterThanEqual('vencimento', start.toISOString()),
-								Query.lessThanEqual('vencimento', end.toISOString()),
-								Query.equal('status', filterStatus),
-									];
-									// Nota: adicionar responsavelId aqui pode não usar seu índice combinado; evitamos por performance.
-									res = await appwriteService.listDocuments('sistema', 'lancamentos_financeiros', queries);
-						} else {
-							// Fallback: sem status, volta para competência para não exigir índice de 'vencimento' sozinho
-							res = await appwriteService.listDocuments('sistema', 'lancamentos_financeiros', [
-								Query.equal('competencia', filterCompetencia),
-							]);
-						}
-					}
+					// Consulta única por vencimento (mês selecionado)
+					const [year, month] = filterCompetencia.split('-').map(Number);
+					const start = new Date(year, month - 1, 1);
+					const end = new Date(year, month, 0, 23, 59, 59, 999);
+					const queries = [
+						Query.greaterThanEqual('vencimento', start.toISOString()),
+						Query.lessThanEqual('vencimento', end.toISOString()),
+					];
+					if (filterStatus) queries.push(Query.equal('status', filterStatus));
+					const res = await appwriteService.listDocuments('sistema', 'lancamentos_financeiros', queries);
 					let docs = res?.documents || [];
-					// Tipagem: somente mensalidades
-					docs = docs.filter((d) => String(d.tipo || '').toLowerCase() === 'mensalidade');
-					// Filtro de status em memória quando necessário
-					if (filterMode === 'competencia' || !filterStatus) {
-						if (filterStatus) {
-							docs = docs.filter((d) => String(d.status || '').toLowerCase() === String(filterStatus).toLowerCase());
-						}
+					// Filtro por responsável em memória (evita necessidade de índice combinado)
+					if (filterResponsavel) {
+						docs = docs.filter((d) => d.responsavelId === filterResponsavel);
 					}
+					// Status já foi aplicado no servidor quando informado; nada extra aqui.
 					setLancamentos(docs);
 			} catch (e) {
 				console.error('Erro ao carregar responsáveis/alunos:', e);
@@ -121,7 +235,7 @@ const FinancialModule = () => {
 			}
 		};
 			fetchData();
-		}, [filterCompetencia, filterStatus, filterMode]);
+		}, [filterCompetencia, filterStatus, filterResponsavel]);
 
 			// Carregar alunos ao selecionar responsável no dialog
 			useEffect(() => {
@@ -187,6 +301,9 @@ const FinancialModule = () => {
 
 	const toggleExpand = (id) => {
 		setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+	};
+	const toggleExpandAluno = (id) => {
+		setExpandedAluno((prev) => ({ ...prev, [id]: !prev[id] }));
 	};
 
 		const addMonths = (ym, delta) => {
@@ -278,8 +395,11 @@ const FinancialModule = () => {
 									due = adjustWeekend(due);
 								}
 						const competencia = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}`;
+						let baseId = `${form.responsavelId}_${nextSeq + i}`;
+						baseId = baseId.replace(/[^a-zA-Z0-9._-]/g, '');
+						if (baseId.length > 36) baseId = baseId.slice(0, 36);
 						docsToCreate.push({
-							id: `${form.responsavelId}[${nextSeq + i}]`,
+							id: baseId,
 							data: {
 								responsavelId: form.responsavelId,
 								responsavelNome: resp?.nome || '',
@@ -300,8 +420,11 @@ const FinancialModule = () => {
 							if (form.hasMatricula) {
 								const taxaDue = startDate; // mesma data da 1ª parcela
 								const taxaCompetencia = `${taxaDue.getFullYear()}-${String(taxaDue.getMonth() + 1).padStart(2, '0')}`;
+								let baseId = `${form.responsavelId}_${nextSeq + Number(form.quantidade)}`;
+								baseId = baseId.replace(/[^a-zA-Z0-9._-]/g, '');
+								if (baseId.length > 36) baseId = baseId.slice(0, 36);
 								docsToCreate.push({
-									id: `${form.responsavelId}[${nextSeq + Number(form.quantidade)}]`,
+									id: baseId,
 									data: {
 										responsavelId: form.responsavelId,
 										responsavelNome: resp?.nome || '',
@@ -325,8 +448,8 @@ const FinancialModule = () => {
 
 					// Recarregar lista
 				setOpenNew(false);
-				// Trigger reload
-				setFilterCompetencia((c) => c); // força o useEffect a rodar
+				// Atualiza lista imediatamente após salvar lançamentos
+				await fetchData();
 			} catch (e) {
 				console.error('Erro ao criar lançamento', e);
 					setFormErrorMsg('Não foi possível salvar o plano financeiro.');
@@ -336,12 +459,12 @@ const FinancialModule = () => {
 		};
 
 	return (
-		<Box sx={{ maxWidth: 900, margin: '0 auto', mt: 4 }}>
+		<Box sx={{ maxWidth: '100%', width: '100%', px: { xs: 1, md: 4 }, mt: 2 }}>
 			<Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
 				Gestão Financeira
 			</Typography>
 					<Typography variant="subtitle1" sx={{ mb: 2 }}>
-						Mensalidades
+						Lançamentos
 					</Typography>
 
 							{/* Filtros */}
@@ -367,13 +490,7 @@ const FinancialModule = () => {
 								<MenuItem value="atrasado">Atrasado</MenuItem>
 							</Select>
 						</FormControl>
-						<FormControl size="small" sx={{ minWidth: 190 }}>
-							<InputLabel id="modo-label">Modo de filtro</InputLabel>
-							<Select labelId="modo-label" label="Modo de filtro" value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
-								<MenuItem value="competencia">Por competência</MenuItem>
-								<MenuItem value="vencimento">Por vencimento (mês)</MenuItem>
-							</Select>
-						</FormControl>
+
 								<FormControl size="small" sx={{ minWidth: 220 }}>
 									<InputLabel id="resp-label">Responsável</InputLabel>
 									<Select labelId="resp-label" label="Responsável" value={filterResponsavel} onChange={(e) => setFilterResponsavel(e.target.value)}>
@@ -383,23 +500,14 @@ const FinancialModule = () => {
 										))}
 									</Select>
 								</FormControl>
-						{filterMode === 'vencimento' && !filterStatus && (
-							<Tooltip title="Para melhor desempenho ao filtrar por vencimento, selecione um status (usa índice combinado).">
-								<Chip label="Dica: selecione um status" size="small" />
-							</Tooltip>
-						)}
-								{filterMode === 'vencimento' && filterResponsavel && (
-									<Tooltip title="Filtro por responsável utiliza consulta por competência para melhor desempenho.">
-										<Chip label="Usando competência" size="small" />
-									</Tooltip>
-								)}
+
 								<Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
 									<Typography variant="body2" color="text.secondary">Total geral do mês:</Typography>
 									<Chip color="primary" label={`R$ ${totalGeral.toFixed(2)}`} />
 								</Box>
 					</Paper>
 
-					<Paper elevation={2} sx={{ mb: 3 }}>
+					<Paper elevation={2} sx={{ mb: 3, minHeight: 400, width: '100%', p: 2, boxSizing: 'border-box' }}>
 				{loading ? (
 					<Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
 						<CircularProgress size={20} />
@@ -411,76 +519,146 @@ const FinancialModule = () => {
 					</Box>
 				) : (
 					<List>
-								{agrupado.map((resp) => {
-									const rid = resp.responsavelId;
-									const open = !!expanded[rid];
-									const qtdAlunos = resp.alunos.length;
-													return (
-										<Box key={rid}>
-											<ListItemButton onClick={() => toggleExpand(rid)}>
-												<Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-													<ListItemText
-														primary={resp.responsavelNome}
-																		secondary={`Alunos: ${qtdAlunos} • Lançamentos: ${resp.totalLanc} • Total: R$ ${resp.total.toFixed(2)}`}
-													/>
-													<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-																		{!!pendentesPorResp.get(rid) && (
-																			<Chip color="warning" size="small" label={`Pendentes: ${pendentesPorResp.get(rid)}`} />
-																		)}
-														{open ? <ExpandLess /> : <ExpandMore />}
+								{/* Cabeçalho das colunas */}
+								<Box sx={{ display: 'flex', fontWeight: 'bold', px: 2, py: 1, borderBottom: '2px solid #ddd', bgcolor: 'background.paper' }}>
+									<Box sx={{ flex: 3 }}>Nome</Box>
+									<Box sx={{ flex: 2 }}>Vencimento</Box>
+									<Box sx={{ flex: 1 }}>Valor</Box>
+									<Box sx={{ flex: 1 }}>Status</Box>
+								</Box>
+								{/* Lista agrupada por responsável, expandindo alunos */}
+								{agrupado.length === 0 ? (
+									<Box sx={{ p: 3 }}>
+										<Typography variant="body2" color="text.secondary">Nenhum lançamento de mensalidade encontrado para o mês atual.</Typography>
+										<Typography variant="body2" color="text.secondary">Nenhum lançamento encontrado para o período selecionado.</Typography>
+									</Box>
+								) : (
+									agrupado.map((resp) => {
+										const rid = resp.responsavelId;
+										const open = !!expanded[rid];
+										// Responsável row
+										return (
+											<React.Fragment key={rid}>
+												<Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderBottom: '1px solid #eee', bgcolor: 'background.paper', cursor: 'pointer', '&:hover': { backgroundColor: 'action.hover' } }} onClick={() => toggleExpand(rid)}>
+													<Box sx={{ flex: 3, fontWeight: 'normal', color: 'text.primary' }} onDoubleClick={(e) => { e.stopPropagation(); openDetail('responsavel', resp); }}>{resp.responsavelNome}</Box>
+													<Box sx={{ flex: 2, color: 'text.secondary' }}>
+														{resp.alunos
+															.flatMap(a => a.itens.map(i => i.vencimento?.slice(0,10) || '—'))
+															.filter((v, i, arr) => arr.indexOf(v) === i)
+															.join(', ')}
+													</Box>
+													<Box sx={{ flex: 1, fontWeight: 'normal', color: 'text.primary' }}>
+														R$ {resp.alunos.reduce((acc, a) => acc + a.itens.reduce((s, i) => s + Number(i.valor || 0), 0), 0).toFixed(2)}
+													</Box>
+													<Box sx={{ flex: 1 }}>
+														{/* Status agregado do responsável, só mostra se não expandido */}
+														{!open && (
+															<Chip
+																label={getStatusAgregado(resp.alunos.flatMap(a => a.itens))}
+																color={getStatusColor(getStatusAgregado(resp.alunos.flatMap(a => a.itens)))}
+																size="small"
+															/>
+														)}
 													</Box>
 												</Box>
-											</ListItemButton>
-											<Collapse in={open} timeout="auto" unmountOnExit>
-												<Divider />
-												<List component="div" disablePadding>
-													{resp.alunos.map((aluno) => (
-														<Box key={aluno.alunoId}>
-															<ListItemButton sx={{ pl: 4 }}>
-																<ListItemText
-																	primary={aluno.alunoNome}
-																	secondary={`Total do mês: R$ ${aluno.total.toFixed(2)}`}
-																/>
-															</ListItemButton>
-															{aluno.itens.map((item) => (
-																<ListItemButton key={item.$id} sx={{ pl: 6 }}>
-																	<ListItemText
-																		primary={`Venc.: ${item.vencimento?.slice(0,10) || '—'} • Valor: R$ ${Number(item.valor||0).toFixed(2)}`}
-																		secondary={item.descricao || ''}
-																	/>
-																	<Chip
-																		label={String(item.status || '').toUpperCase()}
-																		color={item.status === 'pago' || item.status === 'Pago' ? 'success' : item.status === 'atrasado' ? 'error' : 'warning'}
-																		size="small"
-																	/>
-																</ListItemButton>
-															))}
-															<Divider />
-														</Box>
-													))}
-													{qtdAlunos === 0 && (
-														<Box sx={{ pl: 4, pr: 2, py: 1.5 }}>
-															<Typography variant="body2" color="text.secondary">Sem lançamentos de mensalidade para este responsável no mês.</Typography>
-														</Box>
-													)}
-												</List>
-											</Collapse>
-											<Divider />
-										</Box>
-									);
-								})}
-								{agrupado.length === 0 && (
-							<Box sx={{ p: 3 }}>
-										<Typography variant="body2" color="text.secondary">Nenhum lançamento de mensalidade encontrado para o mês atual.</Typography>
-							</Box>
-						)}
+												{/* Alunos vinculados, cada um em sua linha, alinhados */}
+												<Collapse in={open} timeout="auto" unmountOnExit>
+													{resp.alunos.map((aluno) => {
+														const alunoOpen = !!expandedAluno[aluno.alunoId];
+														return (
+															<React.Fragment key={aluno.alunoId}>
+																<Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderBottom: '1px solid #f5f5f5', bgcolor: 'background.paper', cursor: 'pointer', '&:hover': { backgroundColor: 'action.hover' } }} onClick={() => toggleExpandAluno(aluno.alunoId)}>
+																	<Box sx={{ flex: 3 }} onDoubleClick={(e) => { e.stopPropagation(); openDetail('aluno', aluno); }}>{aluno.alunoNome}</Box>
+																	<Box sx={{ flex: 2 }}>{aluno.itens.length > 0 ? (aluno.itens[0].vencimento?.slice(0,10) || '—') : '—'}</Box>
+																	<Box sx={{ flex: 1 }}>R$ {aluno.itens.reduce((acc, i) => acc + Number(i.valor || 0), 0).toFixed(2)}</Box>
+																	<Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+																		{/* Status agregado do aluno, só mostra se não expandido */}
+																		{!alunoOpen && (
+																			<Chip
+																				label={getStatusAgregado(aluno.itens)}
+																				color={getStatusColor(getStatusAgregado(aluno.itens))}
+																				size="small"
+																			/>
+																		)}
+																		{alunoOpen && <span></span>}
+																	</Box>
+																</Box>
+																<Collapse in={alunoOpen} timeout="auto" unmountOnExit>
+								    {aluno.itens.map((item) => (
+																		<Box key={item.$id} sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderBottom: '1px solid #f0f0f0', bgcolor: 'background.paper', cursor: 'pointer', '&:hover': { backgroundColor: 'action.hover' } }} onDoubleClick={(e) => { e.stopPropagation(); openDetail('lancamento', item); }}>
+									    <Box sx={{ flex: 3 }}>{capitalizeFirst(item.tipo || 'conta')}</Box>
+																			<Box sx={{ flex: 2 }}>{item.vencimento?.slice(0,10) || '—'}</Box>
+																			<Box sx={{ flex: 1 }}>R$ {Number(item.valor||0).toFixed(2)}</Box>
+																			<Box sx={{ flex: 1 }}>
+																				{/* Status do lançamento, só mostra se aluno está expandido */}
+																				<Chip
+																					label={String(item.status || '').toUpperCase()}
+																					color={item.status === 'pago' || item.status === 'Pago' ? 'success' : item.status === 'atrasado' ? 'error' : 'warning'}
+																					size="small"
+																				/>
+																			</Box>
+																		</Box>
+																	))}
+																</Collapse>
+															</React.Fragment>
+														);
+													})}
+												</Collapse>
+											</React.Fragment>
+										);
+									})
+								)}
 					</List>
 				)}
 			</Paper>
 
+			{/* Dialog de detalhes */}
+			<Dialog open={detailOpen} onClose={closeDetail} maxWidth="sm" fullWidth>
+				<DialogTitle>
+					{detail.type === 'responsavel' && 'Detalhes do responsável'}
+					{detail.type === 'aluno' && 'Detalhes do aluno'}
+					{detail.type === 'lancamento' && 'Detalhes do lançamento'}
+				</DialogTitle>
+				<DialogContent sx={{ pt: 2 }}>
+					{detail.type === 'responsavel' && detail.data && (
+						<Stack spacing={1}>
+							<Typography><strong>Nome:</strong> {detail.data.responsavelNome}</Typography>
+							<Typography><strong>ID:</strong> {detail.data.responsavelId}</Typography>
+							<Typography><strong>Total do mês:</strong> R$ {Number(detail.data.alunos?.reduce((acc, a) => acc + a.itens.reduce((s, i) => s + Number(i.valor||0), 0), 0) || 0).toFixed(2)}</Typography>
+							<Typography><strong>Vencimentos:</strong> {detail.data.alunos?.flatMap(a => a.itens.map(i => i.vencimento?.slice(0,10) || '—')).filter((v, i, arr) => arr.indexOf(v) === i).join(', ') || '—'}</Typography>
+						</Stack>
+					)}
+					{detail.type === 'aluno' && detail.data && (
+						<Stack spacing={1}>
+							<Typography><strong>Aluno:</strong> {detail.data.alunoNome}</Typography>
+							<Typography><strong>ID:</strong> {detail.data.alunoId}</Typography>
+							<Typography><strong>Total do mês:</strong> R$ {Number(detail.data.itens?.reduce((acc, i) => acc + Number(i.valor||0), 0) || 0).toFixed(2)}</Typography>
+							<Typography><strong>Lançamentos:</strong> {detail.data.itens?.length || 0}</Typography>
+						</Stack>
+					)}
+					{detail.type === 'lancamento' && detail.data && (
+						<Stack spacing={1}>
+							<Typography><strong>ID:</strong> {detail.data.$id}</Typography>
+							<Typography><strong>Responsável:</strong> {detail.data.responsavelNome}</Typography>
+							<Typography><strong>Aluno:</strong> {detail.data.alunoNome}</Typography>
+							<Typography><strong>Tipo:</strong> {capitalizeFirst(detail.data.tipo || '')}</Typography>
+							<Typography><strong>Vencimento:</strong> {detail.data.vencimento?.slice(0,10) || '—'}</Typography>
+							<Typography><strong>Competência:</strong> {detail.data.competencia || '—'}</Typography>
+							<Typography><strong>Valor:</strong> R$ {Number(detail.data.valor||0).toFixed(2)}</Typography>
+							<Typography><strong>Status:</strong> {String(detail.data.status||'').toUpperCase()}</Typography>
+							{detail.data.descricao && <Typography><strong>Descrição:</strong> {detail.data.descricao}</Typography>}
+						</Stack>
+					)}
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={closeDetail}>Fechar</Button>
+				</DialogActions>
+			</Dialog>
+
 					<Button variant="contained" startIcon={<AddIcon />} sx={{ fontWeight: 'bold' }} onClick={handleOpenNew}>
 				Lançar plano financeiro
 			</Button>
+					<Button variant="outlined" sx={{ fontWeight: 'bold', ml: 1 }} onClick={handleOpenAvulso}>+ Lançar avulso</Button>
 
 					{/* Dialog novo lançamento */}
 							<Dialog open={openNew} onClose={() => setOpenNew(false)} maxWidth="sm" fullWidth>
@@ -599,6 +777,58 @@ const FinancialModule = () => {
 							<Button variant="contained" onClick={handleSaveNew} disabled={saving}>Salvar</Button>
 						</DialogActions>
 					</Dialog>
+
+			{/* Dialog lançamento avulso */}
+			<Dialog open={openAvulso} onClose={() => setOpenAvulso(false)} maxWidth="sm" fullWidth>
+				<DialogTitle>Novo lançamento avulso</DialogTitle>
+				<DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+					{formErrorMsg && <Alert severity="error">{formErrorMsg}</Alert>}
+					<Autocomplete
+						options={responsaveisAll}
+						getOptionLabel={(o) => o?.nome || ''}
+						isOptionEqualToValue={(o, v) => o.$id === v.$id}
+						value={responsaveisAll.find((r) => r.$id === formAvulso.responsavelId) || null}
+						onChange={(_, val) => setFormAvulso((f) => ({ ...f, responsavelId: val?.$id || '', alunoId: '' }))}
+						renderInput={(params) => (
+							<TextField {...params} label="Responsável" size="small" error={!!formErrors.responsavelId} helperText={formErrors.responsavelId || ''} />
+						)}
+					/>
+					<Autocomplete
+						options={alunosForRespAvulso}
+						getOptionLabel={(o) => o?.nome || ''}
+						isOptionEqualToValue={(o, v) => o.$id === v.$id}
+						value={alunosForRespAvulso.find((a) => a.$id === formAvulso.alunoId) || null}
+						onChange={(_, val) => setFormAvulso((f) => ({ ...f, alunoId: val?.$id || '' }))}
+						disabled={!formAvulso.responsavelId}
+						renderInput={(params) => (
+							<TextField {...params} label="Aluno" size="small" required error={!!formErrors.alunoId} helperText={formErrors.alunoId || ''} />
+						)}
+					/>
+					<FormControl fullWidth size="small">
+						<InputLabel id="tipo-avulso-label">Tipo</InputLabel>
+						<Select labelId="tipo-avulso-label" label="Tipo" value={formAvulso.tipo} onChange={(e) => setFormAvulso((f) => ({ ...f, tipo: e.target.value }))}>
+							{tiposLancamento.map((t) => (
+								<MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+							))}
+						</Select>
+					</FormControl>
+					<TextField label="Vencimento" type="date" size="small" InputLabelProps={{ shrink: true }} value={formAvulso.vencimento} onChange={(e) => setFormAvulso((f) => ({ ...f, vencimento: e.target.value }))} fullWidth error={!!formErrors.vencimento} helperText={formErrors.vencimento || ''} />
+					<TextField label="Valor (R$)" type="number" size="small" inputProps={{ step: '0.01', min: '0' }} value={formAvulso.valor} onChange={(e) => setFormAvulso((f) => ({ ...f, valor: e.target.value }))} fullWidth error={!!formErrors.valor} helperText={formErrors.valor || ''} />
+					<FormControl fullWidth size="small">
+						<InputLabel id="status-avulso-label">Status</InputLabel>
+						<Select labelId="status-avulso-label" label="Status" value={formAvulso.status} onChange={(e) => setFormAvulso((f) => ({ ...f, status: e.target.value }))}>
+							<MenuItem value="pendente">Pendente</MenuItem>
+							<MenuItem value="pago">Pago</MenuItem>
+							<MenuItem value="atrasado">Atrasado</MenuItem>
+						</Select>
+					</FormControl>
+					<TextField label="Descrição" multiline minRows={2} size="small" value={formAvulso.descricao} onChange={(e) => setFormAvulso((f) => ({ ...f, descricao: e.target.value }))} fullWidth />
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setOpenAvulso(false)}>Cancelar</Button>
+					<Button variant="contained" onClick={handleSaveAvulso} disabled={savingAvulso}>Salvar</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 };
