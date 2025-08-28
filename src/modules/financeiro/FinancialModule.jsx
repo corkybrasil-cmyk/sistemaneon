@@ -1,4 +1,32 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+// import duplicado removido
+// Botão de navegação para plano financeiro completo
+function VerPlanoButton() {
+	const navigate = useNavigate();
+	const { detail } = React.useContext(DetailContext);
+	// Pega o aluno do lançamento ou do modal
+	const aluno = detail?.data?.alunoId && detail?.data?.alunoNome
+	  ? { $id: detail.data.alunoId, nome: detail.data.alunoNome }
+	  : null;
+	return (
+		<Button
+			variant="contained"
+			color="primary"
+			onClick={() => navigate('/sistemaneon/financeiro/planofinanceiro', {
+				state: {
+					aluno: aluno ? aluno : null,
+					status: '', // todos
+					competencia: 'todos',
+				}
+			})}
+		>
+			Ver plano financeiro completo
+		</Button>
+	);
+}
+// Contexto para passar detail para o botão
+const DetailContext = React.createContext({ detail: null });
+import { useNavigate } from 'react-router-dom';
 import appwriteService from '../../services/appwriteService';
 import { Query } from 'appwrite';
 import {
@@ -60,6 +88,7 @@ function capitalizeFirst(str) {
 }
 
 const FinancialModule = () => {
+	const navigate = useNavigate();
 		const [lancamentos, setLancamentos] = useState([]);
 	const [expanded, setExpanded] = useState({});
 	const [expandedAluno, setExpandedAluno] = useState({});
@@ -488,24 +517,42 @@ const FinancialModule = () => {
 			}
 		};
 
-	return (
-		<Box sx={{ maxWidth: '100%', width: '100%', px: { xs: 1, md: 4 }, mt: 2 }}>
-			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-				<Box>
-					<Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-						Gestão Financeira
-					</Typography>
-					<Typography variant="subtitle1" sx={{ mb: 2 }}>
-						Lançamentos
-					</Typography>
+		return (
+			<Box sx={{ maxWidth: '100%', width: '100%', px: { xs: 1, md: 4 }, mt: 2 }}>
+				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+					<Box>
+						<Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+							Gestão Financeira
+						</Typography>
+						<Typography variant="subtitle1" sx={{ mb: 2 }}>
+							Lançamentos
+						</Typography>
+					</Box>
+					<Box>
+						<Button
+							variant="contained"
+							color="secondary"
+							sx={{ fontWeight: 'bold', mr: 1 }}
+							onClick={() => {
+								const now = new Date();
+								const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+								navigate('/sistemaneon/financeiro/planofinanceiro', {
+									state: {
+										aluno: null,
+										status: '', // todos
+										competencia: currentMonth,
+									}
+								});
+							}}
+						>
+							Plano Financeiro Completo
+						</Button>
+						<Button variant="contained" startIcon={<AddIcon />} sx={{ fontWeight: 'bold', mr: 1 }} onClick={handleOpenNew}>
+							Lançar plano financeiro
+						</Button>
+						<Button variant="outlined" sx={{ fontWeight: 'bold' }} onClick={handleOpenAvulso}>+ Lançar avulso</Button>
+					</Box>
 				</Box>
-				<Box>
-					<Button variant="contained" startIcon={<AddIcon />} sx={{ fontWeight: 'bold', mr: 1 }} onClick={handleOpenNew}>
-						Lançar plano financeiro
-					</Button>
-					<Button variant="outlined" sx={{ fontWeight: 'bold' }} onClick={handleOpenAvulso}>+ Lançar avulso</Button>
-				</Box>
-			</Box>
 
 							{/* Filtros */}
 							<Paper elevation={0} sx={{ mb: 2, p: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -659,6 +706,7 @@ const FinancialModule = () => {
 			</Paper>
 
 			{/* Dialog de detalhes */}
+			<DetailContext.Provider value={{ detail }}>
 			<Dialog open={detailOpen} onClose={closeDetail} maxWidth="sm" fullWidth>
 				<DialogTitle>
 					{detail.type === 'responsavel' && 'Detalhes do responsável'}
@@ -696,10 +744,14 @@ const FinancialModule = () => {
 						</Stack>
 					)}
 				</DialogContent>
-				<DialogActions>
-					<Button onClick={closeDetail}>Fechar</Button>
+				   <DialogActions>
+					   {detail.type === 'lancamento' && (
+						   <VerPlanoButton />
+					   )}
+					   <Button onClick={closeDetail}>Fechar</Button>
 				</DialogActions>
 			</Dialog>
+			</DetailContext.Provider>
 
 					{/* Botões de lançar movidos para o topo ao lado do título */}
 

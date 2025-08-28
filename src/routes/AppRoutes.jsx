@@ -57,7 +57,12 @@ const AppRoutes = () => {
       <Route path="/responsaveis" element={<ResponsiblesModule />} />
       <Route path="/chamada" element={<AttendanceModule />} />
       <Route path="/notas" element={<GradesModule />} />
-      <Route path="/financeiro" element={<FinancialModule />} />
+  <Route path="/financeiro" element={<FinancialModule />} />
+  <Route path="/sistemaneon/financeiro/planofinanceiro" element={
+    <React.Suspense fallback={<div>Carregando plano financeiro...</div>}>
+      {React.createElement(React.lazy(() => import('../modules/financeiro/planofinanceiro/PlanoFinanceiroModule')))}
+    </React.Suspense>
+  } />
       <Route path="/turmas" element={<ClassesModule />} />
       <Route path="/horarios" element={<ScheduleModule />} />
       <Route path="/comunicacao" element={<CommunicationModule />} />
